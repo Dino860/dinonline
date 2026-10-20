@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Comanda Ágil - Garçom</title>
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Font Awesome para ícones -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    /* Otimizações para uso com uma mão e toque rápido */
+    body {
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    }
+    input, textarea {
+      user-select: text;
+    }
+    /* Esconde barra de rolagem mas mantém rolagem ativa */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-between pb-6">
+
+  <!-- TOPO: Identificação e Alternador [Mesa / Comanda] -->
+  <header class="bg-slate-900 border-b border-slate-800 p-3 sticky top-0 z-30 shadow-md">
+    <div class="max-w-md mx-auto flex items-center justify-between gap-3">
+      <!-- Alternador Mesa / Comanda -->
+      <div class="flex bg-slate-950 p-1 rounded-xl border border-slate-800 flex-1">
+        <button id="btnTypeMesa" onclick="setType('Mesa')" class="flex-1 py-2 text-sm font-bold rounded-lg transition-all bg-emerald-600 text-white shadow">
+          <i class="fa-solid fa-utensils mr-1"></i> Mesa
+        </button>
+        <button id="btnTypeComanda" onclick="setType('Comanda')" class="flex-1 py-2 text-sm font-bold rounded-lg transition-all text-slate-400 hover:text-slate-200">
+          <i class="fa-solid fa-receipt mr-1"></i> Comanda
+        </button>
+      </div>
+
+      <!-- Input Numérico Grande -->
+      <div class="flex items-center bg-slate-800 rounded-xl px-3 py-1 border border-slate-700 w-32">
+        <span id="typePrefix" class="text-xs text-emerald-400 font-bold uppercase mr-1">M:</span>
+        <input id="targetNumber" type="number" inputmode="numeric" placeholder="Nº" class="w-full bg-transparent text-xl font-black text-white outline-none text-right">
+      </div>
+    </div>
+  </header>
+
+  <!-- CORPO PRINCIPAL -->
+  <main class="flex-1 max-w-md w-full mx-auto p-3 flex flex-col gap-3">
+    
+    <!-- Caixa de Entrada de Códigos -->
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3 shadow-lg">
+      <div class="flex justify-between items-center mb-1">
+        <label class="text-xs font-semibold text-slate-400 flex items-center gap-1">
+          <i class="fa-solid fa-bolt text-amber-400"></i> Digite Códigos Rápidos:
+        </label>
+        <button onclick="clearInput()" class="text-xs text-rose-400 active:scale-95 px-2 py-0.5 rounded bg-rose-950/40 border border-rose-800/40 font-semibold">
+          Limpar
+        </button>
+      </div>
+      
+      <textarea id="codeInput" rows="3" placeholder="Ex: 1 ccz .gl&#10;2 gn .gla&#10;1 acg .gsl" 
+        class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-base font-mono text-emerald-300 focus:outline-none focus:border-emerald-500 placeholder-slate-600 leading-snug uppercase"></textarea>
+
+      <!-- Atalhos Rápidos com 1 Toque (Chips Deslizáveis) -->
+      <div class="mt-2 flex gap-1.5 overflow-x-auto no-scrollbar py-1">
+        <span class="text-[10px] uppercase font-bold text-slate-500 self-center">Add:</span>
+        <button onclick="insertShortcut('CCZ .GL')" class="bg-slate-800 border border-slate-700 text-xs px-2.5 py-1.5 rounded-lg active:bg-slate-700 shrink-0 font-medium text-slate-200">Coca 0 + Limão</button>
+        <button onclick="insertShortcut('GN .GLA')" class="bg-slate-800 border border-slate-700 text-xs px-2.5 py-1.5 rounded-lg active:bg-slate-700 shrink-0 font-medium text-slate-200">Guaraná + Laranja</button>
+        <button onclick="insertShortcut('ACG .GSL')" class="bg-slate-800 border border-slate-700 text-xs px-2.5 py-1.5 rounded-lg active:bg-slate-700 shrink-0 font-medium text-slate-200">Água Gás + Sumo</button>
+        <button onclick="insertShortcut('C.OR .T2')" class="bg-slate-800 border border-slate-700 text-xs px-2.5 py-1.5 rounded-lg active:bg-slate-700 shrink-0 font-medium text-slate-200">Original (2 Tulipas)</button>
+        <button onclick="insertShortcut('CHH')" class="bg-slate-800 border border-slate-700 text-xs px-2.5 py-1.5 rounded-lg active:bg-slate-700 shrink-0 font-medium text-slate-200">Chopp Heineken</button>
+        <button onclick="insertShortcut('S.LA .GA')" class="bg-slate-800 border border-slate-700 text-xs px-2.5 py-1.5 rounded-lg active:bg-slate-700 shrink-0 font-medium text-slate-200">Suco Laranja + GA</button>
+      </div>
+    </div>
+
+    <!-- Tradução Automática em Tempo Real -->
+    <div class="bg-slate-900/90 border border-emerald-950 rounded-2xl p-3 shadow-md flex-1 min-h-[110px] flex flex-col">
+      <div class="text-xs font-semibold text-emerald-400 mb-1 flex items-center justify-between">
+        <span class="flex items-center gap-1.5">
+          <i class="fa-solid fa-wand-magic-sparkles"></i> Tradução Instantânea (Copa):
+        </span>
+        <span id="itemCountBadge" class="text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-800/60 px-1.5 py-0.5 rounded">0 itens</span>
+      </div>
+      
+      <div id="livePreview" class="bg-slate-950/80 rounded-xl p-2.5 border border-slate-800/80 flex-1 overflow-y-auto max-h-36 font-sans text-sm text-slate-300 space-y-1">
+        <span class="text-slate-600 italic">O pedido traduzido aparecerá aqui automaticamente...</span>
+      </div>
+    </div>
+
+    <!-- Campo Opcional: Cozinha / Observações extras -->
+    <div class="bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 flex items-center gap-2">
+      <i class="fa-solid fa-kitchen-set text-slate-500 text-sm"></i>
+      <input id="extraNotes" type="text" placeholder="Obs: Cozinha, ponto de carne, retirar algo..." class="bg-transparent text-sm w-full outline-none text-slate-300 placeholder-slate-600">
+    </div>
+
+    <!-- Botão de Ação Gigante (Fácil alcance do polegar) -->
+    <button onclick="saveCurrentOrder()" class="w-full bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] py-4 rounded-2xl text-white font-extrabold text-lg shadow-lg shadow-emerald-900/40 flex items-center justify-center gap-2 transition-all">
+      <i class="fa-solid fa-plus-circle text-xl"></i> ADICIONAR COMANDA
+    </button>
+
+    <!-- Lista de Comandas Ativas / Histórico -->
+    <div class="mt-2">
+      <div class="flex items-center justify-between mb-2 px-1">
+        <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+          <i class="fa-solid fa-clock-rotate-left"></i> Comandas em Aberto
+        </h2>
+        <div class="flex items-center gap-2">
+          <button onclick="clearAllOrders()" title="Limpar todas as comandas" class="text-[11px] text-rose-400 hover:text-rose-300 px-2 py-0.5 rounded bg-rose-950/30 border border-rose-900/40 font-medium">
+            Limpar Todas
+          </button>
+          <span id="totalActiveOrders" class="text-xs bg-slate-800 px-2 py-0.5 rounded-full font-bold text-slate-300">0</span>
+        </div>
+      </div>
+
+      <div id="ordersList" class="flex flex-col gap-2.5 max-h-72 overflow-y-auto no-scrollbar pb-2">
+        <!-- Renderizado dinamicamente via JS -->
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Modal de Mensagem / Alerta Flutuante (Substituto do alert nativo) -->
+  <div id="toastMessage" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-800 border border-slate-700 text-white px-4 py-2.5 rounded-xl shadow-2xl text-sm font-semibold flex items-center gap-2 transition-opacity duration-300 opacity-0 pointer-events-none z-50">
+    <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400"></i>
+    <span id="toastText">Mensagem</span>
+  </div>
+
+  <script>
+    // 1. DICIONÁRIO COMPLETO DE CÓDIGOS E TRADUÇÕES
+    const BEVERAGES = {
+      // Refrigerantes e Águas
+      "CCZ": "Coca-Cola Zero",
+      "CCN": "Coca-Cola Normal",
+      "GN": "Guaraná Normal",
+      "GZ": "Guaraná Zero",
+      "ACG": "Água com Gás",
+      "ASG": "Água sem Gás",
+      "AT": "Água Tônica",
+      "SCH": "Schweppes",
+      "SN": "Sprite Normal",
+      "SZ": "Sprite Zero",
+      "FL": "Fanta Laranja",
+      "FU": "Fanta Uva",
+      "H2O": "H2OH! Limão",
+      "H2L": "H2OH! Limoneto",
+      "ENG": "Energético",
+      // Chopp e Cervejas
+      "CHH": "Chopp Heineken (c/ Caneca)",
+      "C.OR": "Cerveja Antarctica Original (c/ Suporte Térmico)",
+      "C.HEI": "Cerveja Heineken (c/ Suporte Térmico)",
+      // Sucos Copo (S.)
+      "S.LA": "Suco de Laranja",
+      "S.MA": "Suco de Maracujá",
+      "S.LI": "Suco de Limão",
+      "S.CAJ": "Suco de Caju",
+      "S.CA": "Suco de Cajá",
+      "S.MO": "Suco de Morango",
+      "S.GRA": "Suco de Graviola",
+      "S.AB": "Suco de Abacaxi",
+      "S.ABH": "Suco de Abacaxi c/ Hortelã",
+      "S.GO": "Suco de Goiaba",
+      // Sucos Jarra (SJ.)
+      "SJ.LA": "Jarra de Suco de Laranja",
+      "SJ.MA": "Jarra de Suco de Maracujá",
+      "SJ.LI": "Jarra de Suco de Limão",
+      "SJ.CAJ": "Jarra de Suco de Caju",
+      "SJ.CA": "Jarra de Suco de Cajá",
+      "SJ.MO": "Jarra de Suco de Morango",
+      "SJ.GRA": "Jarra de Suco de Graviola",
+      "SJ.AB": "Jarra de Suco de Abacaxi",
+      "SJ.ABH": "Jarra de Suco de Abacaxi c/ Hortelã",
+      "SJ.GO": "Jarra de Suco de Goiaba"
+    };
+
+    const MODIFIERS = {
+      ".GLA": "c/ Gelo e Laranja em rodela",
+      ".GSL": "c/ Gelo e Sumo de Limão espremido",
+      ".GCL": "c/ Gelo, Rodela e Sumo de Limão",
+      ".GL": "c/ Gelo e Limão em rodela",
+      ".GA": "c/ Gelo e Açúcar",
+      ".GP": "c/ Gelo à parte",
+      ".ADO": "c/ Adoçante",
+      ".SG": "sem Gelo",
+      ".SA": "sem Açúcar",
+      ".G": "só Gelo",
+      ".C": "só Copo",
+      ".A": "só Açúcar",
+      ".L": "só Limão",
+      ".LA": "só Laranja"
+    };
+
+    // Estado da aplicação com persistência via localStorage
+    let currentType = "Mesa";
+    const STORAGE_KEY = 'comanda_rapida_orders_v1';
+    let orders = [];
+
+    function loadSavedOrders() {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          orders = JSON.parse(saved);
+        }
+      } catch (e) {
+        orders = [];
+      }
+    }
+
+    function saveOrdersToStorage() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(orders));
+      } catch (e) {}
+    }
+
+    // Elementos DOM
+    const codeInput = document.getElementById('codeInput');
+    const livePreview = document.getElementById('livePreview');
+    const targetNumber = document.getElementById('targetNumber');
+    const extraNotes = document.getElementById('extraNotes');
+    const btnTypeMesa = document.getElementById('btnTypeMesa');
+    const btnTypeComanda = document.getElementById('btnTypeComanda');
+    const typePrefix = document.getElementById('typePrefix');
+    const ordersList = document.getElementById('ordersList');
+    const totalActiveOrders = document.getElementById('totalActiveOrders');
+    const itemCountBadge = document.getElementById('itemCountBadge');
+
+    // 2. FUNÇÃO DE TRADUÇÃO EM TEMPO REAL
+    function translateLine(line) {
+      let raw = line.trim();
+      if (!raw) return "";
+
+      const qtyMatch = raw.match(/^(\d+)\s*(.*)/);
+      let quantity = "1";
+      let content = raw;
+
+      if (qtyMatch) {
+        quantity = qtyMatch[1];
+        content = qtyMatch[2].trim();
+      }
+
+      let tokens = content.split(/\s+/);
+      let translatedDrink = "";
+      let foundModifiers = [];
+
+      tokens.forEach(tok => {
+        let upperTok = tok.toUpperCase();
+
+        // 1. Verifica Tulipas com quantidade (ex: .T2, .T4)
+        const tulipaMatch = upperTok.match(/^\.T(\d+)$/);
+        if (tulipaMatch) {
+          foundModifiers.push(`${tulipaMatch[1]} Tulipa(s)`);
+          return;
+        }
+
+        // 2. Verifica se é bebida do catálogo
+        if (BEVERAGES[upperTok]) {
+          translatedDrink = BEVERAGES[upperTok];
+          return;
+        }
+
+        // 3. Verifica modificador
+        if (MODIFIERS[upperTok]) {
+          foundModifiers.push(MODIFIERS[upperTok]);
+          return;
+        }
+
+        // Item desconhecido mantido como observação
+        foundModifiers.push(tok);
+      });
+
+      if (!translatedDrink) {
+        return `${quantity}x ${content}`;
+      }
+
+      const modsText = foundModifiers.length > 0 ? ` (${foundModifiers.join(', ')})` : '';
+      return `<strong class="text-emerald-400 font-semibold">${quantity}x</strong> ${translatedDrink}${modsText}`;
+    }
+
+    function updatePreview() {
+      const text = codeInput.value;
+      const lines = text.split('\n').filter(l => l.trim() !== "");
+      
+      itemCountBadge.textContent = `${lines.length} item${lines.length === 1 ? '' : 's'}`;
+
+      if (lines.length === 0) {
+        livePreview.innerHTML = '<span class="text-slate-600 italic">O pedido traduzido aparecerá aqui automaticamente...</span>';
+        return;
+      }
+
+      const translatedLines = lines.map(translateLine);
+      livePreview.innerHTML = translatedLines.map(line => `<div class="py-0.5 border-b border-slate-900/60 last:border-none flex items-center gap-1.5"><i class="fa-solid fa-angle-right text-[10px] text-slate-500"></i> ${line}</div>`).join('');
+    }
+
+    codeInput.addEventListener('input', updatePreview);
+
+    // 3. SELEÇÃO MESA / COMANDA
+    function setType(type) {
+      currentType = type;
+      if (type === 'Mesa') {
+        btnTypeMesa.className = "flex-1 py-2 text-sm font-bold rounded-lg transition-all bg-emerald-600 text-white shadow";
+        btnTypeComanda.className = "flex-1 py-2 text-sm font-bold rounded-lg transition-all text-slate-400 hover:text-slate-200";
+        typePrefix.textContent = "M:";
+        typePrefix.className = "text-xs text-emerald-400 font-bold uppercase mr-1";
+      } else {
+        btnTypeComanda.className = "flex-1 py-2 text-sm font-bold rounded-lg transition-all bg-cyan-600 text-white shadow";
+        btnTypeMesa.className = "flex-1 py-2 text-sm font-bold rounded-lg transition-all text-slate-400 hover:text-slate-200";
+        typePrefix.textContent = "C:";
+        typePrefix.className = "text-xs text-cyan-400 font-bold uppercase mr-1";
+      }
+    }
+
+    // 4. ATALHOS RÁPIDOS
+    function insertShortcut(code) {
+      const current = codeInput.value.trim();
+      codeInput.value = current ? `${current}\n1 ${code}` : `1 ${code}`;
+      updatePreview();
+      codeInput.focus();
+    }
+
+    function clearInput() {
+      codeInput.value = '';
+      updatePreview();
+    }
+
+    // 5. SALVAR PEDIDO
+    function saveCurrentOrder() {
+      const num = targetNumber.value.trim();
+      const codeText = codeInput.value.trim();
+      const notes = extraNotes.value.trim();
+
+      if (!num) {
+        showToast("Informe o número da Mesa ou Comanda!", "fa-triangle-exclamation", "text-amber-400");
+        targetNumber.focus();
+        return;
+      }
+
+      if (!codeText && !notes) {
+        showToast("Digite os itens do pedido ou observação!", "fa-triangle-exclamation", "text-amber-400");
+        codeInput.focus();
+        return;
+      }
+
+      const lines = codeText.split('\n').filter(l => l.trim() !== "");
+      const itemsTraduzidos = lines.map(translateLine);
+
+      const newOrder = {
+        id: Date.now(),
+        type: currentType,
+        number: num,
+        items: itemsTraduzidos,
+        rawItems: lines,
+        notes: notes,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
+
+      orders.unshift(newOrder);
+      saveOrdersToStorage();
+      renderOrders();
+
+      // Limpa os campos para o próximo pedido mantendo a agilidade
+      codeInput.value = "";
+      extraNotes.value = "";
+      updatePreview();
+      showToast(`${currentType} ${num} salva!`, "fa-circle-check", "text-emerald-400");
+    }
+
+    // 6. RENDERIZAR LISTA DE COMANDAS
+    function renderOrders() {
+      totalActiveOrders.textContent = orders.length;
+
+      if (orders.length === 0) {
+        ordersList.innerHTML = `
+          <div class="text-center py-6 text-slate-600 border border-dashed border-slate-800 rounded-xl">
+            <i class="fa-solid fa-clipboard-check text-2xl mb-1 block"></i>
+            Nenhum pedido pendente
+          </div>`;
+        return;
+      }
+
+      ordersList.innerHTML = orders.map(ord => {
+        const isMesa = ord.type === 'Mesa';
+        const tagClass = isMesa ? 'bg-emerald-950 text-emerald-400 border-emerald-800' : 'bg-cyan-950 text-cyan-400 border-cyan-800';
+        
+        return `
+          <div class="bg-slate-900 border border-slate-800 p-3 rounded-xl shadow flex flex-col gap-2">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+              <div class="flex items-center gap-2">
+                <span class="text-xs font-black px-2 py-0.5 rounded border ${tagClass}">
+                  ${ord.type.toUpperCase()} ${ord.number}
+                </span>
+                <span class="text-xs text-slate-500">${ord.time}</span>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <!-- Botão Copiar para WhatsApp -->
+                <button onclick="copyToWhatsApp(${ord.id})" title="Copiar Formato WhatsApp" class="p-1.5 px-2.5 rounded-lg bg-emerald-950/60 border border-emerald-800/50 text-emerald-300 active:scale-95 text-xs font-semibold flex items-center gap-1">
+                  <i class="fa-brands fa-whatsapp text-sm"></i> Copiar
+                </button>
+                <!-- Botão Entregue / Concluído -->
+                <button onclick="removeOrder(${ord.id})" title="Marcar como entregue" class="p-1.5 px-2.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 active:scale-95 text-xs font-medium hover:text-rose-400">
+                  <i class="fa-solid fa-check text-emerald-400"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Itens do pedido -->
+            <div class="text-sm space-y-1 text-slate-300">
+              ${ord.items.map(it => `<div class="flex items-start gap-1"><span class="text-slate-600 text-xs">•</span><span>${it}</span></div>`).join('')}
+            </div>
+
+            ${ord.notes ? `
+              <div class="text-xs bg-slate-950 p-2 rounded-lg border border-slate-800/80 text-amber-300/90 flex items-start gap-1.5">
+                <i class="fa-solid fa-note-sticky text-amber-400 mt-0.5"></i>
+                <span>${ord.notes}</span>
+              </div>
+            ` : ''}
+          </div>
+        `;
+      }).join('');
+    }
+
+    // 7. COPIAR FORMATADO PARA WHATSAPP
+    function copyToWhatsApp(id) {
+      const order = orders.find(o => o.id === id);
+      if (!order) return;
+
+      const cleanItems = order.items.map(it => {
+        const tmp = document.createElement("DIV");
+        tmp.innerHTML = it;
+        return "• " + (tmp.textContent || tmp.innerText || "");
+      }).join('\n');
+
+      let textToCopy = `*📋 ${order.type.toUpperCase()} ${order.number}* (${order.time})\n\n${cleanItems}`;
+      if (order.notes) {
+        textToCopy += `\n\n*Obs:* ${order.notes}`;
+      }
+
+      const textarea = document.createElement("textarea");
+      textarea.value = textToCopy;
+      textarea.style.position = "fixed";
+      textarea.style.left = "-9999px";
+      document.body.appendChild(textarea);
+      textarea.select();
+      
+      try {
+        document.execCommand('copy');
+        showToast("Copiado com formatação do WhatsApp!", "fa-brands fa-whatsapp", "text-emerald-400");
+      } catch (err) {
+        showToast("Não foi possível copiar.", "fa-circle-xmark", "text-rose-400");
+      } finally {
+        document.body.removeChild(textarea);
+      }
+    }
+
+    function removeOrder(id) {
+      orders = orders.filter(o => o.id !== id);
+      saveOrdersToStorage();
+      renderOrders();
+      showToast("Comanda marcada como entregue!", "fa-check-double", "text-emerald-400");
+    }
+
+    function clearAllOrders() {
+      if (orders.length === 0) return;
+      orders = [];
+      saveOrdersToStorage();
+      renderOrders();
+      showToast("Todas as comandas foram limpas!", "fa-trash", "text-rose-400");
+    }
+
+    // 8. TOAST FLUTUANTE
+    let toastTimeout;
+    function showToast(msg, icon = "fa-circle-check", iconColor = "text-emerald-400") {
+      const toast = document.getElementById('toastMessage');
+      const toastText = document.getElementById('toastText');
+      const toastIcon = document.getElementById('toastIcon');
+
+      toastText.textContent = msg;
+      toastIcon.className = `fa-solid ${icon} ${iconColor}`;
+
+      toast.classList.remove('opacity-0');
+      toast.classList.add('opacity-100');
+
+      clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        toast.classList.remove('opacity-100');
+        toast.classList.add('opacity-0');
+      }, 2500);
+    }
+
+    // Inicialização
+    window.onload = function() {
+      loadSavedOrders();
+      updatePreview();
+      renderOrders();
+    };
+  </script>
+</body>
+</html>
